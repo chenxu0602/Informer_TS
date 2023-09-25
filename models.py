@@ -39,7 +39,7 @@ class ProbSparseMultiheadAttention(nn.Module):
         attn_scores.scatter(dim=-1, index=top_idx, src=top_val)
 
         weights = torch.softmax(attn_scores, dim=-1)
-        attn = torch.einsum("nhqk,nkhd->nqhd", [weights, V]).reshape(query.size(0), -1, self.d_model)
+        attn = torch.einsum("nhqk,nkhd->nqhd", [weights, V]).contiguous.view(query.size(0), -1, self.d_model)
 
         return self.W_o(attn), weights
 
@@ -110,7 +110,7 @@ class ProbSparseMultiheadAttention_2020(nn.Module):
 
         attn_scores += (mask * -1e9)
         attn_probs = F.softmax(attn_scores, dim=-1)
-        attn = torch.einsum("nhql,nhld->nqhd", [attn_probs, V]).reshape(batch_size, -1, self.d_model)
+        attn = torch.einsum("nhql,nhld->nqhd", [attn_probs, V]).contiguous().view(batch_size, -1, self.d_model)
 
         return attn, attn_probs
 
@@ -133,7 +133,7 @@ class MultiheadAttention(nn.Module):
         attn_scores = torch.einsum("nqhd,nkhd->nhqk", [Q, K]) / math.sqrt(self.d_k)
         if mask is not None: attn_scores += (mask * -1e9)
         attn_probs = F.softmax(attn_scores, dim=-1)
-        attn = torch.einsum("nhql,nlhd->nqhd", [attn_probs, V]).reshape(Q.size(0), -1, self.d_model)
+        attn = torch.einsum("nhql,nlhd->nqhd", [attn_probs, V]).contiguous().view(Q.size(0), -1, self.d_model)
         return attn, attn_probs
 
     def split_heads(self, x):
